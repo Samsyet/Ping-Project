@@ -13,7 +13,9 @@ user_details = {
     "location": "Village",
     "talked_to": set(),
     "can_talk": True,
-    "can_fight": False,  # Set to True when the user reaches the dragon
+    "can_fight": False,
+    "has_sword": False,
+    "has_armor": False,
     "health": 100,  # User's initial health
 }
 
@@ -30,7 +32,7 @@ map_details = {
             "people": ["Old man in the Village"],
         },
         "Kakori Forest": {
-            "can_talk": False,
+            "can_talk": True,
             "can_fight": False,
             "neighbors": {"south": "Village"},
             "people": ["Ascalon's Soul"],
@@ -92,7 +94,6 @@ def move(direction: str):
         available_directions = ", ".join([f"{dir}: {neighbor}" for dir, neighbor in neighbors.items()])
         typer.echo(f"Invalid direction. Available directions: {available_directions}")
 
-        
 def talk_to():
     """
     Talk to a person.
@@ -125,24 +126,31 @@ def talk_to():
                 typer.echo("The old man tells you about the People in the Robes.")
                 typer.echo("He suggests you should visit them for further guidance.")
                 user_details["can_talk"] = False  # Prevent talking to the old man again
-                user_details["can_fight"] = False  # Prevent fighting in the village
                 user_details["location"] = "Caves of the People in Robes"  # Move user to the next location
 
+            elif selected_person == "Leader of the People in the Robes" and current_location == "Caves of the People in Robes":
+                typer.echo("The leader tells you about the Sword of Ascalon and its importance.")
+                typer.echo("He suggests you should go to Gwen's Village to get the armor.")
+                user_details["location"] = "Gwen's Village"  # Move user to the next location
+
             elif selected_person == "Gwen" and current_location == "Gwen's Village":
-                typer.echo("Gwen tells you about the imminent danger her village faces.")
-                typer.echo("She decides to accompany you on your journey as her village is also at risk.")
-                typer.echo("You both decide to head towards the Caves of the People in Robes.")
-                user_details["can_talk"] = False  # Prevent talking to Gwen again
-                user_details["can_fight"] = False  # Prevent fighting in Gwen's village
-                user_details["location"] = "Caves of the People in Robes"  # Move user to the next location
+                typer.echo("Gwen forges the armor for you and tells you to go to the Kakori Forest.")
+                typer.echo("She says you will find Ascalon's Soul there.")
+                user_details["has_armor"] = True
+                user_details["location"] = "Kakori Forest"  # Move user to the next location
+
+            elif selected_person == "Ascalon's Soul" and current_location == "Kakori Forest":
+                typer.echo("Ascalon's Soul bestows the Sword of Ascalon upon you.")
+                user_details["has_sword"] = True
+                user_details["can_fight"] = True
+                typer.echo("You are now ready to fight the Dragon!")
+                user_details["location"] = "Mountain of Doom"  # Move user to the final location
 
         else:
             typer.echo(f"{selected_person} is not here.")
 
     except ValueError:
         typer.echo("Invalid choice. Please enter a valid number.")
-
-
 
 def fight():
     """
@@ -154,64 +162,68 @@ def fight():
     location_details = map_details["locations"][current_location]
 
     if location_details["can_fight"]:
-        typer.echo("You encounter the Dragon! What will you do?")
+        if user_details["has_sword"] and user_details["has_armor"]:
+            typer.echo("You encounter the Dragon! What will you do?")
 
-        user_health = user_details["health"]
-        typer.echo(f"Your Health: {user_health} | Dragon's Health: {dragon_health}")
+            user_health = user_details["health"]
+            typer.echo(f"Your Health: {user_health} | Dragon's Health: {dragon_health}")
 
-        while True:
-            typer.echo("1. Slash")
-            typer.echo("2. Stab")
-            typer.echo("3. Special")
-            typer.echo("4. Run")
-            typer.echo()
+            while True:
+                typer.echo("1. Slash")
+                typer.echo("2. Stab")
+                typer.echo("3. Special")
+                typer.echo("4. Run")
+                typer.echo()
 
-            choice = typer.prompt("Enter your choice (1-4):", default="1")
+                choice = typer.prompt("Enter your choice (1-4):", default="1")
 
-            if choice == "1":
-                # Slash attack
-                damage = random.randint(10, 20)
-                dragon_health -= damage
-                typer.echo(f"You slash the Dragon! It takes {damage} damage.")
+                if choice == "1":
+                    # Slash attack
+                    damage = random.randint(10, 20)
+                    dragon_health -= damage
+                    typer.echo(f"You slash the Dragon! It takes {damage} damage.")
 
-            elif choice == "2":
-                # Stab attack
-                damage = random.randint(15, 25)
-                dragon_health -= damage
-                typer.echo(f"You stab the Dragon! It takes {damage} damage.")
+                elif choice == "2":
+                    # Stab attack
+                    damage = random.randint(15, 25)
+                    dragon_health -= damage
+                    typer.echo(f"You stab the Dragon! It takes {damage} damage.")
 
-            elif choice == "3":
-                # Special attack
-                damage = random.randint(25, 35)
-                dragon_health -= damage
-                typer.echo(f"You use your special attack! The Dragon takes {damage} damage.")
+                elif choice == "3":
+                    # Special attack
+                    damage = random.randint(25, 35)
+                    dragon_health -= damage
+                    typer.echo(f"You use your special attack! The Dragon takes {damage} damage.")
 
-            elif choice == "4":
-                # Run away
-                typer.echo("You managed to escape from the Dragon!")
-                break
-
-            else:
-                typer.echo("Invalid choice. Please choose again.")
-            
-            # Check if the Dragon is defeated
-            if dragon_health <= 0:
-                typer.echo("Congratulations! You have defeated the Dragon!")
-                break
-            
-            # Dragon's turn
-            user_health -= random.randint(10, 20)
-            typer.echo(f"The Dragon attacks you! You take damage. Your Health: {user_health}")
-
-            # Check if the user is defeated
-            if user_health <= 0:
-                retry = typer.confirm("You have been defeated by the Dragon! Do you want to retry?")
-                if retry:
-                    user_details["health"] = 100  # Reset user's health
-                    dragon_health = 150  # Reset dragon's health
-                    fight()  # Retry the fight
-                else:
+                elif choice == "4":
+                    # Run away
+                    typer.echo("You managed to escape from the Dragon!")
                     break
+
+                else:
+                    typer.echo("Invalid choice. Please choose again.")
+                
+                # Check if the Dragon is defeated
+                if dragon_health <= 0:
+                    typer.echo("Congratulations! You have defeated the Dragon!")
+                    typer.echo("You have saved the village and its people!")
+                    break
+                
+                # Dragon's turn
+                user_health -= random.randint(10, 20)
+                typer.echo(f"The Dragon attacks you! You take damage. Your Health: {user_health}")
+
+                # Check if the user is defeated
+                if user_health <= 0:
+                    retry = typer.confirm("You have been defeated by the Dragon! Do you want to retry?")
+                    if retry:
+                        user_details["health"] = 100  # Reset user's health
+                        dragon_health = 1000  # Reset dragon's health
+                        fight()  # Retry the fight
+                    else:
+                        break
+        else:
+            typer.echo("You don't have the necessary equipment to fight the Dragon.")
     else:
         typer.echo("There's nothing to fight here.")
 
@@ -239,7 +251,6 @@ def start():
     )
 
     # Initialize game state and start the game loop
-    user_details["location"] = "Village"  # Start the user at the village
     play()
 
 @app.command()
